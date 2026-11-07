@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#101827">
+
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>Fantasy Football AI</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: #101827;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    header {
+      background: #172338;
+      padding: 24px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      color: #38bdf8;
+    }
+
+    main {
+      padding: 24px;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card h2 {
+      margin-top: 0;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #38bdf8;
+      color: #101827;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #dashboard {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>Fantasy Football AI</h1>
+    <p>ESPN Fantasy Football 2026</p>
+  </header>
+
+  <main>
+
+    <section id="login" class="card">
+      <h2>Anmelden</h2>
+
+      <form id="login-form">
+        <input
+          id="email"
+          type="email"
+          placeholder="E-Mail-Adresse"
+          autocomplete="username"
+          required
+        >
+
+        <input
+          id="password"
+          type="password"
+          placeholder="Passwort"
+          autocomplete="current-password"
+          required
+        >
+
+        <button type="submit">
+          Anmelden
+        </button>
+      </form>
+
+      <p id="login-message" role="status"></p>
+    </section>
+
+    <section id="dashboard">
+        
+<div class="card">
+  <button id="logout-button" type="button">
+    Abmelden
+  </button>
+</div>
+
+
+     
+<div class="card">
+  <h2>KI-Empfehlungen</h2>
+
+  <p id="recommendation-status">
+    Empfehlungen werden vorbereitet ...
+  </p>
+
+  <div id="recommendation-list"></div>
+</div>
+
+
+      <div class="card">
+        <h2>KI-Empfehlungen</h2>
+        <p>Hier erscheinen später deine
+           Aufstellungsempfehlungen.</p>
+      </div>
+
+      <div class="card">
+        <h2>Free Agents & Waiver</h2>
+        <p>Hier erscheinen später Empfehlungen
+           für verfügbare Spieler.</p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+  
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then(() => {
+          console.log("Fantasy AI: Service Worker registriert");
+        })
+        .catch((error) => {
+          console.error("Service Worker Fehler:", error);
+        });
+    });
+  }
+</script>
+
+</body>
+</html>
