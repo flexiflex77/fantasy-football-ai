@@ -31,13 +31,24 @@ dashboard.style.display = "none";
 function showRecommendations(recommendations) {
   listElement.replaceChildren();
 
-  const count = recommendations.recommendation_count ?? 0;
+    const items = (recommendations.recommendations ?? []).filter(
+    (item) => {
+      const gain = Number(item.erwarteter_punktegewinn);
+
+      return (
+        item.erwarteter_punktegewinn != null &&
+        Number.isFinite(gain) &&
+        gain >= 3 &&
+        item.bewertung !== "NICHT_EMPFEHLEN"
+      );
+    }
+  );
+
+  const count = items.length;
 
   statusElement.textContent =
     `NFL-Woche ${recommendations.week}: ` +
     `${count} Empfehlung(en)`;
-
-  const items = recommendations.recommendations ?? [];
 
   if (items.length === 0) {
     const message = document.createElement("p");
