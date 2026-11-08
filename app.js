@@ -16,6 +16,8 @@ const dashboard = document.getElementById("dashboard");
 const logoutButton = document.getElementById("logout-button");
 const statusElement = document.getElementById("recommendation-status");
 const listElement = document.getElementById("recommendation-list");
+const waiverStatus = document.getElementById("waiver-status");
+const waiverList = document.getElementById("waiver-list");
 const passwordField = document.getElementById("password");
 
 // Sitzungsdaten bleiben innerhalb dieser Datei
@@ -115,6 +117,81 @@ function showRecommendations(recommendations) {
   }
 }
 
+const waiverPoints = new Intl.NumberFormat("de-DE", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+async function loadWaivers(currentSession, signal) {
+  if (!waiverStatus || !waiverList) return;
+  waiverStatus.textContent = "Waiver-Liste wird geladen …";
+  waiverList.replaceChildren();
+
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/fantasy-waiver-view`,
+      {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        signal,
+      }
+    );
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const data = await response.json();
+    if (currentSession !== sessionVersion) return;
+    if (data.status === "unassigned") {
+      waiverStatus.textContent = "Für dieses Konto ist noch kein ESPN-Team zugeordnet.";
+      return;
+    }
+    if (data.status === "no_snapshot") {
+      waiverStatus.textContent = "Für dein Team liegt noch kein ESPN-Import vor.";
+      return;
+    }
+    if (data.status !== "ready") throw new Error("Unbekannter Waiver-Status");
+
+    const importedAt = new Intl.DateTimeFormat("de-DE", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(data.captured_at));
+
+    const summary = `${data.team_name} · ESPN-Woche ${data.week} · Import vom ${importedAt}`;
+    if (data.roster_player_count === 0) {
+      waiverStatus.textContent = `${summary}. Für diese Woche fehlen Kaderdaten.`;
+      return;
+    }
+
+    const count = data.candidates.length;
+    waiverStatus.textContent = `${summary}. ${count === 0
+      ? "Keine passenden Kandidaten im importierten Spielerpool."
+      : `${count} von ${data.source_player_count} importierten Spielern passen zum Kadervergleich.`}`;
+
+    for (const candidate of data.candidates) {
+      const item = document.createElement("li");
+      const name = document.createElement("strong");
+      name.textContent = `${candidate.name} · ${candidate.position}`;
+      const availability = document.createElement("p");
+      availability.textContent = candidate.fantasy_status === "WAIVERS"
+        ? "Auf Waivers beim Import"
+        : "Free Agent beim Import";
+      const comparison = document.createElement("p");
+      comparison.textContent =
+        `${waiverPoints.format(candidate.projected_points)} prognostizierte Punkte · ` +
+        `Kadervergleich ${waiverPoints.format(candidate.lowest_roster_projection)} · ` +
+        `+${waiverPoints.format(candidate.projection_delta)} Punkte`;
+      item.append(name, availability, comparison);
+      waiverList.appendChild(item);
+    }
+  } catch {
+    if (currentSession !== sessionVersion) return;
+    waiverList.replaceChildren();
+    waiverStatus.textContent = "Waiver-Liste konnte nicht geladen werden.";
+  }
+}
+
 // Anmeldung über Supabase Auth
 async function login(email, password) {
   const currentSession = ++sessionVersion;
@@ -198,6 +275,8 @@ async function login(email, password) {
     loginMessage.textContent =
       "Empfehlungen erfolgreich geladen";
 
+    await loadWaivers(currentSession, controller.signal);
+
   } catch (error) {
     if (currentSession !== sessionVersion) return;
 
@@ -250,6 +329,8 @@ logoutButton.addEventListener("click", () => {
   // Alte Empfehlungen entfernen
   listElement.replaceChildren();
   statusElement.textContent = "";
+  waiverList?.replaceChildren();
+  if (waiverStatus) waiverStatus.textContent = "";
 
   loginMessage.textContent =
     "Erfolgreich abgemeldet.";
