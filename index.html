@@ -70,6 +70,27 @@
       cursor: pointer;
     }
 
+    .waiver-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .waiver-list li {
+      background: #172338;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+
+    .waiver-list p {
+      margin: 6px 0 0;
+    }
+
+    .waiver-note {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+
     #dashboard {
       display: none;
     }
@@ -139,15 +160,19 @@
 
       <div class="card">
         <h2>Free Agents & Waiver</h2>
-        <p>Hier erscheinen später Empfehlungen
-           für verfügbare Spieler.</p>
+        <p id="waiver-status" role="status"></p>
+        <ul id="waiver-list" class="waiver-list"></ul>
+        <p class="waiver-note">
+          Der Vergleichswert ist die niedrigste positive Wochenprognose
+          auf derselben Position im Kader. Prüfe die Verfügbarkeit bei ESPN.
+        </p>
       </div>
 
     </section>
 
   </main>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=waiver-1"></script>
   
 <script>
   if ("serviceWorker" in navigator) {
