@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["recommendations"],
+  "properties": {
+    "recommendations": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["espn_player_id"],
+        "properties": {
+          "espn_player_id": { "type": "string" }
+        }
+      }
+    }
+  }
+}
