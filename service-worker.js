@@ -1,14 +1,15 @@
-
 "use strict";
 
 // Fantasy Football AI – Service Worker
-const CACHE_NAME = "fantasy-football-ai-v2";
+const CACHE_NAME = "fantasy-football-ai-v3";
 const CACHE_PREFIX = "fantasy-football-ai-";
 
 // Nur öffentliche, statische App-Dateien zwischenspeichern
 const APP_FILES = [
   "./",
   "./index.html",
+  "./app-layout.css",
+  "./app.js?v=layout-1",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png"
