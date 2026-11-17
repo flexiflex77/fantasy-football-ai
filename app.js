@@ -1,4 +1,3 @@
-
 "use strict";
 
 // Fantasy Football AI – Supabase-Konfiguration
@@ -25,107 +24,154 @@ let accessToken = null;
 let sessionVersion = 0;
 let activeRequest = null;
 
-// Dashboard zu Beginn ausblenden
-dashboard.hidden = true;
-dashboard.style.display = "none";
+const pages = [...dashboard.querySelectorAll("[data-page]")];
+const navigation = [...dashboard.querySelectorAll("[data-page-link]")];
+const filters = document.getElementById("waiver-filters");
+const waiverEmpty = document.getElementById("waiver-empty");
+const lineupForecasts = document.getElementById("lineup-forecasts");
+const waiverForecasts = document.getElementById("waiver-forecasts");
+const waiverForecastStatus = document.getElementById("waiver-forecast-status");
+const dashboardWeek = document.getElementById("dashboard-week");
+const heroPlayer = document.getElementById("hero-player");
+const heroDetail = document.getElementById("hero-detail");
+const heroPhoto = document.getElementById("hero-photo");
+const heroMetric = document.getElementById("hero-metric");
+const heroGain = document.getElementById("hero-gain");
 
-// Empfehlungen anzeigen
-function showRecommendations(recommendations) {
-  listElement.replaceChildren();
-
-    const items = (recommendations.recommendations ?? []).filter(
-    (item) => {
-      const gain = Number(item.erwarteter_punktegewinn);
-
-      return (
-        item.erwarteter_punktegewinn != null &&
-        Number.isFinite(gain) &&
-        gain >= 3 &&
-        item.bewertung !== "NICHT_EMPFEHLEN"
-      );
-    }
-  );
-
-  const count = items.length;
-
-  statusElement.textContent =
-    `NFL-Woche ${recommendations.week}: ` +
-    `${count} Empfehlung(en)`;
-
-  if (items.length === 0) {
-    const message = document.createElement("p");
-    message.textContent =
-      "Aktuell keine Aufstellungsverbesserung gefunden.";
-    listElement.appendChild(message);
-    return;
-  }
-
-  for (const item of items) {
-    const card = document.createElement("div");
-    card.style.padding = "12px";
-    card.style.marginTop = "12px";
-    card.style.borderRadius = "8px";
-    card.style.background = "#172338";
-
-    const title = document.createElement("h3");
-    title.textContent =
-      `${item.bankspieler} statt ${item.starter}`;
-
-    const position = document.createElement("p");
-    position.textContent =
-      `Position: ${item.zielposition}`;
-
-    const gain = Number(item.erwarteter_punktegewinn);
-
-    const points = document.createElement("p");
-    points.textContent = Number.isFinite(gain)
-      ? `Erwarteter Punktegewinn: +${gain.toFixed(2)}`
-      : "Erwarteter Punktegewinn: Nicht verfügbar";
-
-    const injury = document.createElement("p");
-    injury.textContent =
-      `Verletzungsstatus: ` +
-      `${item.bank_verletzungsstatus ?? "Unbekannt"} ` +
-      `/ ${item.starter_verletzungsstatus ?? "Unbekannt"}`;
-
-    const assessment = document.createElement("p");
-
-    if (!Number.isFinite(gain)) {
-      assessment.textContent =
-        "Bewertung: Prognose nicht verfügbar.";
-    } else if (gain < 1) {
-      assessment.textContent =
-        "Bewertung: Sehr knapper Prognosevorteil – " +
-        "kein dringender Wechsel.";
-    } else if (gain < 3) {
-      assessment.textContent =
-        "Bewertung: Mögliche Aufstellungsverbesserung.";
-    } else {
-      assessment.textContent =
-        "Bewertung: Deutlicher Prognosevorteil.";
-    }
-
-    card.append(
-      title,
-      position,
-      points,
-      injury,
-      assessment
-    );
-
-    listElement.appendChild(card);
-  }
-}
-
-const waiverPoints = new Intl.NumberFormat("de-DE", {
+const points = new Intl.NumberFormat("de-DE", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+const signedPoints = new Intl.NumberFormat("de-DE", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  signDisplay: "exceptZero",
+});
+
+function createElement(tag, value, className) {
+  const element = document.createElement(tag);
+  if (value != null) element.textContent = value;
+  if (className) element.className = className;
+  return element;
+}
+
+function showPage(focusHeading = false) {
+  const requested = location.hash.slice(1);
+  const selected = pages.find(page => page.dataset.page === requested) ?? pages[0];
+
+  for (const page of pages) page.hidden = page !== selected;
+  for (const link of navigation) {
+    if (link.dataset.pageLink === selected.dataset.page) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  }
+  if (focusHeading && !dashboard.hidden) {
+    window.scrollTo(0, 0);
+    selected.querySelector("h1").focus({ preventScroll: true });
+  }
+}
+
+window.addEventListener("hashchange", () => showPage(true));
+
+function showHero(item) {
+  heroPlayer.textContent = item?.bankspieler ?? "Aufstellung beibehalten";
+  heroDetail.textContent = item
+    ? `${item.zielposition} · Statt ${item.starter}. Laut ESPN-Prognose bringt der Wechsel mehr Punkte.`
+    : "Die aktuellen Prognosen ergeben keinen Wechsel, der die Aufstellung klar verbessert.";
+  heroGain.textContent = item ? signedPoints.format(item.erwarteter_punktegewinn) : "";
+  heroMetric.hidden = !item;
+
+  heroPhoto.hidden = true;
+  heroPhoto.removeAttribute("src");
+  if (item?.bankspieler === "Jahmyr Gibbs") {
+    heroPhoto.src = "https://a.espncdn.com/i/headshots/nfl/players/full/4429795.png";
+    heroPhoto.hidden = false;
+  }
+}
+
+heroPhoto.addEventListener("error", () => { heroPhoto.hidden = true; });
+
+function appendForecast(list, name, value, detail) {
+  const row = createElement("li");
+  const top = createElement("div", null, "row-top");
+  top.append(createElement("strong", name), createElement("span", value, "row-gain"));
+  row.append(top, createElement("p", detail, "row-detail"));
+  list.append(row);
+}
+
+function showRecommendations(recommendations) {
+  listElement.replaceChildren();
+  lineupForecasts.replaceChildren();
+
+  const items = (recommendations.recommendations ?? [])
+    .filter(item => Number.isFinite(Number(item.erwarteter_punktegewinn)) &&
+      Number(item.erwarteter_punktegewinn) >= 3 &&
+      item.bewertung !== "NICHT_EMPFEHLEN")
+    .sort((a, b) => Number(b.erwarteter_punktegewinn) - Number(a.erwarteter_punktegewinn));
+
+  const week = `NFL-Woche ${recommendations.week}`;
+  dashboardWeek.textContent = week;
+  statusElement.textContent = `${week} · ${items.length === 1 ? "1 Wechselvorschlag" : `${items.length} Wechselvorschläge`}`;
+  showHero(items[0]);
+
+  if (items.length === 0) {
+    listElement.append(createElement("p", "Aktuell keine Aufstellungsverbesserung gefunden.", "panel muted"));
+    lineupForecasts.append(createElement("li", "Aktuell gibt es keine Wechselvorschläge.", "muted"));
+    return;
+  }
+
+  const positionLists = new Map();
+  for (const item of items) {
+    const position = item.zielposition;
+    if (!positionLists.has(position)) {
+      const group = createElement("section");
+      const list = createElement("ul", null, "stack data-list");
+      group.append(createElement("h2", position, "position-title"), list);
+      listElement.append(group);
+      positionLists.set(position, list);
+    }
+
+    const card = createElement("li", null, "panel");
+    const title = `${item.bankspieler} statt ${item.starter}`;
+    const change = `${signedPoints.format(item.erwarteter_punktegewinn)} Pkt.`;
+    const top = createElement("div", null, "row-top");
+    top.append(createElement("h3", title), createElement("span", change, "row-gain"));
+    const injury = `Verletzungsstatus · ${item.bankspieler}: ${item.bank_verletzungsstatus ?? "Unbekannt"} · ${item.starter}: ${item.starter_verletzungsstatus ?? "Unbekannt"}`;
+    card.append(top, createElement("p", injury, "row-detail"));
+    positionLists.get(position).append(card);
+    appendForecast(lineupForecasts, title, change, position);
+  }
+}
+
+function setWaiverFilter(availability) {
+  for (const button of filters.querySelectorAll("button")) {
+    button.setAttribute("aria-pressed", String(button.dataset.availability === availability));
+  }
+  const rows = [...waiverList.children];
+  for (const item of rows) {
+    item.hidden = availability !== "all" && item.dataset.status !== availability;
+  }
+  waiverEmpty.hidden = rows.length === 0 || rows.some(item => !item.hidden);
+}
+
+filters.addEventListener("click", event => {
+  const button = event.target.closest("button[data-availability]");
+  if (button) setWaiverFilter(button.dataset.availability);
+});
+
+function setWaiverStatus(message, forecastMessage = message) {
+  waiverStatus.textContent = message;
+  waiverForecastStatus.textContent = forecastMessage;
+}
 
 async function loadWaivers(currentSession, signal) {
-  if (!waiverStatus || !waiverList) return;
-  waiverStatus.textContent = "Waiver-Liste wird geladen …";
+  setWaiverStatus("Spielerpool wird geladen …");
   waiverList.replaceChildren();
+  waiverForecasts.replaceChildren();
+  filters.hidden = true;
+  setWaiverFilter("all");
 
   try {
     const response = await fetch(
@@ -144,11 +190,11 @@ async function loadWaivers(currentSession, signal) {
     const data = await response.json();
     if (currentSession !== sessionVersion) return;
     if (data.status === "unassigned") {
-      waiverStatus.textContent = "Für dieses Konto ist noch kein ESPN-Team zugeordnet.";
+      setWaiverStatus("Für dieses Konto ist noch kein ESPN-Team zugeordnet.");
       return;
     }
     if (data.status === "no_snapshot") {
-      waiverStatus.textContent = "Für dein Team liegt noch kein ESPN-Import vor.";
+      setWaiverStatus("Für dein Team liegt noch kein ESPN-Import vor.");
       return;
     }
     if (data.status !== "ready") throw new Error("Unbekannter Waiver-Status");
@@ -160,35 +206,38 @@ async function loadWaivers(currentSession, signal) {
 
     const summary = `${data.team_name} · ESPN-Woche ${data.week} · Import vom ${importedAt}`;
     if (data.roster_player_count === 0) {
-      waiverStatus.textContent = `${summary}. Für diese Woche fehlen Kaderdaten.`;
+      setWaiverStatus(`${summary}. Für diese Woche fehlen Kaderdaten.`);
       return;
     }
 
     const count = data.candidates.length;
-    waiverStatus.textContent = `${summary}. ${count === 0
+    const detail = count === 0
       ? "Keine passenden Kandidaten im importierten Spielerpool."
-      : `${count} von ${data.source_player_count} importierten Spielern passen zum Kadervergleich.`}`;
+      : `${count} von ${data.source_player_count} importierten Spielern passen zum Kadervergleich.`;
+    setWaiverStatus(`${summary}. ${detail}`, count === 0 ? `${summary}. ${detail}` : summary);
 
     for (const candidate of data.candidates) {
-      const item = document.createElement("li");
-      const name = document.createElement("strong");
-      name.textContent = `${candidate.name} · ${candidate.position}`;
-      const availability = document.createElement("p");
-      availability.textContent = candidate.fantasy_status === "WAIVERS"
-        ? "Auf Waivers beim Import"
-        : "Free Agent beim Import";
-      const comparison = document.createElement("p");
-      comparison.textContent =
-        `${waiverPoints.format(candidate.projected_points)} prognostizierte Punkte · ` +
-        `Kadervergleich ${waiverPoints.format(candidate.lowest_roster_projection)} · ` +
-        `+${waiverPoints.format(candidate.projection_delta)} Punkte`;
-      item.append(name, availability, comparison);
-      waiverList.appendChild(item);
+      const item = createElement("li", null, "panel");
+      const name = `${candidate.name} · ${candidate.position}`;
+      const top = createElement("div", null, "row-top");
+      const availability = candidate.fantasy_status === "WAIVERS" ? "Waiver-Claim nötig"
+        : candidate.fantasy_status === "FREEAGENT" ? "Sofort verfügbar" : "Verfügbarkeit unbekannt";
+      const badge = createElement("span", availability, "availability");
+      item.dataset.status = badge.dataset.status = candidate.fantasy_status ?? "unknown";
+      top.append(createElement("h3", name), badge);
+      const prediction = `${points.format(candidate.projected_points)} Pkt.`;
+      const comparison = `Kadervergleich ${points.format(candidate.lowest_roster_projection)} Pkt. · ${signedPoints.format(candidate.projection_delta)} Pkt.`;
+      item.append(top, createElement("p", `${prediction} prognostiziert · ${comparison}`, "row-detail"));
+      waiverList.append(item);
+      appendForecast(waiverForecasts, name, prediction, comparison);
     }
+    filters.hidden = count === 0;
   } catch {
     if (currentSession !== sessionVersion) return;
     waiverList.replaceChildren();
-    waiverStatus.textContent = "Waiver-Liste konnte nicht geladen werden.";
+    waiverForecasts.replaceChildren();
+    filters.hidden = true;
+    setWaiverStatus("Spielerpool konnte nicht geladen werden.");
   }
 }
 
@@ -267,10 +316,10 @@ async function login(email, password) {
 
     // Dashboard erst nach erfolgreicher Prüfung anzeigen
     loginSection.hidden = true;
-    loginSection.style.display = "none";
 
     dashboard.hidden = false;
-    dashboard.style.display = "block";
+    logoutButton.hidden = false;
+    showPage(true);
 
     loginMessage.textContent =
       "Empfehlungen erfolgreich geladen";
@@ -318,11 +367,11 @@ logoutButton.addEventListener("click", () => {
 
   // Dashboard ausblenden
   dashboard.hidden = true;
-  dashboard.style.display = "none";
+  logoutButton.hidden = true;
 
   // Anmeldemaske anzeigen
   loginSection.hidden = false;
-  loginSection.style.display = "block";
+  document.getElementById("email").focus();
 
   passwordField.value = "";
 
@@ -330,7 +379,10 @@ logoutButton.addEventListener("click", () => {
   listElement.replaceChildren();
   statusElement.textContent = "";
   waiverList?.replaceChildren();
-  if (waiverStatus) waiverStatus.textContent = "";
+  lineupForecasts.replaceChildren();
+  waiverForecasts.replaceChildren();
+  setWaiverStatus("");
+  showHero(null);
 
   loginMessage.textContent =
     "Erfolgreich abgemeldet.";
