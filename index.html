@@ -1,193 +1,115 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#101827">
-
-  <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#151918">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="app-layout.css">
   <title>Fantasy Football AI</title>
-
-  <style>
-    body {
-      margin: 0;
-      background: #101827;
-      color: white;
-      font-family: Arial, sans-serif;
-    }
-
-    header {
-      background: #172338;
-      padding: 24px;
-      text-align: center;
-    }
-
-    h1 {
-      margin: 0;
-      color: #38bdf8;
-    }
-
-    main {
-      padding: 24px;
-      max-width: 600px;
-      margin: auto;
-    }
-
-    .card {
-      background: #1e293b;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
-    }
-
-    .card h2 {
-      margin-top: 0;
-    }
-
-    input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 12px;
-      margin-bottom: 12px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      background: #38bdf8;
-      color: #101827;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .waiver-list {
-      list-style: none;
-      padding: 0;
-    }
-
-    .waiver-list li {
-      background: #172338;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 8px;
-    }
-
-    .waiver-list p {
-      margin: 6px 0 0;
-    }
-
-    .waiver-note {
-      font-size: 0.9rem;
-      color: #cbd5e1;
-    }
-
-    #dashboard {
-      display: none;
-    }
-  </style>
 </head>
-
 <body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a class="brand" href="#start">
+        <img src="icon-192.png" width="40" height="40" alt="">
+        <span>Fantasy Football <strong>AI</strong><small>ESPN Fantasy · Saison 2026</small></span>
+      </a>
+      <button id="logout-button" class="quiet-button" type="button" hidden>Abmelden</button>
+    </header>
 
-  <header>
-    <h1>Fantasy Football AI</h1>
-    <p>ESPN Fantasy Football 2026</p>
-  </header>
+    <main>
+      <section id="login" class="panel login-panel" aria-labelledby="login-title">
+        <h1 id="login-title">Anmelden</h1>
+        <form id="login-form">
+          <label for="email">E-Mail-Adresse</label>
+          <input id="email" type="email" autocomplete="username" required>
+          <label for="password">Passwort</label>
+          <input id="password" type="password" autocomplete="current-password" required>
+          <button class="primary-button" type="submit">Anmelden</button>
+        </form>
+        <p id="login-message" class="muted" role="status"></p>
+      </section>
 
-  <main>
+      <div id="dashboard" hidden>
+        <section data-page="start" aria-labelledby="start-title">
+          <div class="page-heading">
+            <div>
+              <p id="dashboard-week" class="week-label"></p>
+              <h1 id="start-title" tabindex="-1">Spieltag</h1>
+            </div>
+          </div>
+          <article class="hero" aria-labelledby="hero-player">
+            <div class="hero-body">
+              <p class="hero-label">Top-Empfehlung</p>
+              <h2 id="hero-player">Empfehlung wird geladen</h2>
+              <p id="hero-detail"></p>
+              <a class="primary-button" href="#aufstellung">Zur Aufstellung <span aria-hidden="true">→</span></a>
+            </div>
+            <img id="hero-photo" class="hero-photo" alt="" referrerpolicy="no-referrer" hidden>
+            <div id="hero-metric" class="hero-metric" hidden>
+              <strong id="hero-gain"></strong>
+              <span>erwartete Punkte zusätzlich</span>
+            </div>
+          </article>
+          <div class="shortcuts" aria-label="Weitere Ansichten">
+            <a class="panel shortcut" href="#spieler"><span>Free Agents &amp; Waiver<small>Verfügbarkeit und Kadervergleich</small></span><span aria-hidden="true">→</span></a>
+            <a class="panel shortcut" href="#prognosen"><span>Prognosen<small>ESPN-Punkte im Vergleich</small></span><span aria-hidden="true">→</span></a>
+          </div>
+        </section>
 
-    <section id="login" class="card">
-      <h2>Anmelden</h2>
+        <section data-page="aufstellung" aria-labelledby="lineup-title" hidden>
+          <div class="page-heading">
+            <div><h1 id="lineup-title" tabindex="-1">Aufstellung</h1><p id="recommendation-status" class="muted" role="status"></p></div>
+          </div>
+          <div id="recommendation-list" class="stack"></div>
+        </section>
 
-      <form id="login-form">
-        <input
-          id="email"
-          type="email"
-          placeholder="E-Mail-Adresse"
-          autocomplete="username"
-          required
-        >
+        <section data-page="spieler" aria-labelledby="players-title" hidden>
+          <div class="page-heading"><h1 id="players-title" tabindex="-1">Free Agents &amp; Waiver</h1></div>
+          <div id="waiver-filters" class="filters" role="group" aria-label="Nach Verfügbarkeit filtern" hidden>
+            <button type="button" data-availability="all" aria-pressed="true">Alle</button>
+            <button type="button" data-availability="FREEAGENT" aria-pressed="false">Free Agents</button>
+            <button type="button" data-availability="WAIVERS" aria-pressed="false">Waiver</button>
+          </div>
+          <p id="waiver-status" class="muted" role="status"></p>
+          <p id="waiver-empty" class="panel muted" role="status" hidden>In diesem Filter gibt es keine passenden Kandidaten.</p>
+          <ul id="waiver-list" class="stack data-list"></ul>
+          <p class="footnote">Die Verfügbarkeit entspricht dem Stand beim Import. Prüfe sie vor einem Wechsel bei ESPN.</p>
+        </section>
 
-        <input
-          id="password"
-          type="password"
-          placeholder="Passwort"
-          autocomplete="current-password"
-          required
-        >
+        <section data-page="prognosen" aria-labelledby="forecast-title" hidden>
+          <div class="page-heading"><h1 id="forecast-title" tabindex="-1">Prognosen</h1></div>
+          <section class="panel forecast-panel" aria-labelledby="forecast-lineup-title">
+            <h2 id="forecast-lineup-title">Aufstellung</h2>
+            <p class="muted">Erwarteter Punktevorteil je vorgeschlagenem Wechsel.</p>
+            <ul id="lineup-forecasts" class="data-list table-list"></ul>
+          </section>
+          <section class="panel forecast-panel" aria-labelledby="forecast-pool-title">
+            <h2 id="forecast-pool-title">Free Agents &amp; Waiver</h2>
+            <p class="muted">ESPN-Wochenprognosen für passende Kandidaten und niedrigste positive Prognose auf derselben Position im Kader.</p>
+            <p id="waiver-forecast-status" class="muted" role="status">Spielerpool wird geladen …</p>
+            <ul id="waiver-forecasts" class="data-list table-list"></ul>
+          </section>
+        </section>
 
-        <button type="submit">
-          Anmelden
-        </button>
-      </form>
-
-      <p id="login-message" role="status"></p>
-    </section>
-
-    <section id="dashboard">
-        
-        <div class="card">
-  <button id="logout-button" type="button">
-    Abmelden
-  </button>
-</div>
-
-
-
-     
-<div class="card">
-  <h2>KI-Empfehlungen</h2>
-
-  <p id="recommendation-status">
-    Empfehlungen werden vorbereitet ...
-  </p>
-
-  <div id="recommendation-list"></div>
-</div>
-
-
-      
-
-      <div class="card">
-        <h2>Free Agents & Waiver</h2>
-        <p id="waiver-status" role="status"></p>
-        <ul id="waiver-list" class="waiver-list"></ul>
-        <p class="waiver-note">
-          Der Vergleichswert ist die niedrigste positive Wochenprognose
-          auf derselben Position im Kader. Prüfe die Verfügbarkeit bei ESPN.
-        </p>
+        <nav class="bottom-nav" aria-label="Hauptnavigation">
+          <a href="#start" data-page-link="start" aria-current="page">Start</a>
+          <a href="#aufstellung" data-page-link="aufstellung">Aufstellung</a>
+          <a href="#spieler" data-page-link="spieler">Spieler<span class="sr-only">, Free Agents &amp; Waiver</span></a>
+          <a href="#prognosen" data-page-link="prognosen">Prognosen</a>
+        </nav>
       </div>
+    </main>
+  </div>
 
-    </section>
-
-  </main>
-
-  <script src="app.js?v=waiver-1"></script>
-  
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker
-        .register("./service-worker.js")
-        .then(() => {
-          console.log("Fantasy AI: Service Worker registriert");
-        })
-        .catch((error) => {
-          console.error("Service Worker Fehler:", error);
-        });
-    });
-  }
-</script>
-
+  <script src="app.js?v=layout-1"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch(console.error);
+      });
+    }
+  </script>
 </body>
 </html>
