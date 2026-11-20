@@ -81,6 +81,11 @@
 
         <section data-page="prognosen" aria-labelledby="forecast-title" hidden>
           <div class="page-heading"><h1 id="forecast-title" tabindex="-1">Prognosen</h1></div>
+          <section class="panel forecast-panel" aria-labelledby="weekly-inputs-title">
+            <h2 id="weekly-inputs-title">Wochenstand vor Kickoff</h2>
+            <p id="weekly-inputs-status" class="muted" role="status">Wochenstand wird geladen …</p>
+            <p id="weekly-inputs-coverage" class="muted" hidden></p>
+          </section>
           <section class="panel forecast-panel" aria-labelledby="forecast-lineup-title">
             <h2 id="forecast-lineup-title">Aufstellung</h2>
             <p class="muted">Erwarteter Punktevorteil je vorgeschlagenem Wechsel.</p>
@@ -104,7 +109,7 @@
     </main>
   </div>
 
-  <script src="app.js?v=layout-1"></script>
+  <script src="app.js?v=weekly-inputs-1"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
