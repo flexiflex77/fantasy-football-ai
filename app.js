@@ -31,6 +31,8 @@ const waiverEmpty = document.getElementById("waiver-empty");
 const lineupForecasts = document.getElementById("lineup-forecasts");
 const waiverForecasts = document.getElementById("waiver-forecasts");
 const waiverForecastStatus = document.getElementById("waiver-forecast-status");
+const weeklyInputsStatus = document.getElementById("weekly-inputs-status");
+const weeklyInputsCoverage = document.getElementById("weekly-inputs-coverage");
 const dashboardWeek = document.getElementById("dashboard-week");
 const heroPlayer = document.getElementById("hero-player");
 const heroDetail = document.getElementById("hero-detail");
@@ -166,7 +168,30 @@ function setWaiverStatus(message, forecastMessage = message) {
   waiverForecastStatus.textContent = forecastMessage;
 }
 
+function showWeeklyInputs(snapshot, message = "Für dein Team liegt noch kein Wochenstand vor Kickoff vor.") {
+  weeklyInputsCoverage.hidden = true;
+  weeklyInputsCoverage.textContent = "";
+  if (!snapshot) {
+    weeklyInputsStatus.textContent = message;
+    return;
+  }
+
+  const dateTime = new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Berlin",
+  });
+  const capturedAt = dateTime.format(new Date(snapshot.captured_at));
+  const firstKickoff = dateTime.format(new Date(snapshot.first_kickoff));
+  weeklyInputsStatus.textContent =
+    `NFL-Woche ${snapshot.week} · gespeichert am ${capturedAt} Uhr · erster Kickoff am ${firstKickoff} Uhr`;
+  weeklyInputsCoverage.textContent =
+    `Teamkader: ${snapshot.roster_players} Spieler · ${snapshot.espn_projections} ESPN-Prognosen · ${snapshot.waiver_players} Spieler im Free-Agent-/Waiver-Pool`;
+  weeklyInputsCoverage.hidden = false;
+}
+
 async function loadWaivers(currentSession, signal) {
+  showWeeklyInputs(null, "Wochenstand wird geladen …");
   setWaiverStatus("Spielerpool wird geladen …");
   waiverList.replaceChildren();
   waiverForecasts.replaceChildren();
@@ -189,6 +214,7 @@ async function loadWaivers(currentSession, signal) {
 
     const data = await response.json();
     if (currentSession !== sessionVersion) return;
+    showWeeklyInputs(data.weekly_inputs);
     if (data.status === "unassigned") {
       setWaiverStatus("Für dieses Konto ist noch kein ESPN-Team zugeordnet.");
       return;
@@ -238,6 +264,7 @@ async function loadWaivers(currentSession, signal) {
     waiverForecasts.replaceChildren();
     filters.hidden = true;
     setWaiverStatus("Spielerpool konnte nicht geladen werden.");
+    showWeeklyInputs(null, "Wochenstand konnte nicht geladen werden.");
   }
 }
 
@@ -382,6 +409,7 @@ logoutButton.addEventListener("click", () => {
   lineupForecasts.replaceChildren();
   waiverForecasts.replaceChildren();
   setWaiverStatus("");
+  showWeeklyInputs(null, "Wochenstand wird geladen …");
   showHero(null);
 
   loginMessage.textContent =
