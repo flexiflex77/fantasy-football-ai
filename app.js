@@ -33,6 +33,8 @@ const waiverForecasts = document.getElementById("waiver-forecasts");
 const waiverForecastStatus = document.getElementById("waiver-forecast-status");
 const weeklyInputsStatus = document.getElementById("weekly-inputs-status");
 const weeklyInputsCoverage = document.getElementById("weekly-inputs-coverage");
+const weeklyPlayerForecasts = document.getElementById("weekly-player-forecasts");
+const weeklyPlayerForecastsTitle = document.getElementById("weekly-player-forecasts-title");
 const dashboardWeek = document.getElementById("dashboard-week");
 const heroPlayer = document.getElementById("hero-player");
 const heroDetail = document.getElementById("hero-detail");
@@ -169,6 +171,9 @@ function setWaiverStatus(message, forecastMessage = message) {
 }
 
 function showWeeklyInputs(snapshot, message = "Für dein Team liegt noch kein Wochenstand vor Kickoff vor.") {
+  weeklyPlayerForecasts.replaceChildren();
+  weeklyPlayerForecasts.hidden = true;
+  weeklyPlayerForecastsTitle.hidden = true;
   weeklyInputsCoverage.hidden = true;
   weeklyInputsCoverage.textContent = "";
   if (!snapshot) {
@@ -188,6 +193,18 @@ function showWeeklyInputs(snapshot, message = "Für dein Team liegt noch kein Wo
   weeklyInputsCoverage.textContent =
     `Teamkader: ${snapshot.roster_players} Spieler · ${snapshot.espn_projections} ESPN-Prognosen · ${snapshot.waiver_players} Spieler im Free-Agent-/Waiver-Pool`;
   weeklyInputsCoverage.hidden = false;
+  const forecasts = snapshot.player_forecasts ?? [];
+  for (const player of forecasts) {
+    const pointsLabel = player.projected_points == null
+      ? "Keine Prognose"
+      : `${points.format(player.projected_points)} Pkt.`;
+    const detail = player.position && player.roster_slot && player.position !== player.roster_slot
+      ? `${player.position} · Kaderplatz ${player.roster_slot}`
+      : player.position ?? player.roster_slot ?? "";
+    appendForecast(weeklyPlayerForecasts, player.name, pointsLabel, detail);
+  }
+  weeklyPlayerForecasts.hidden = forecasts.length === 0;
+  weeklyPlayerForecastsTitle.hidden = forecasts.length === 0;
 }
 
 async function loadWaivers(currentSession, signal) {
