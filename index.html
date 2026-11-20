@@ -81,6 +81,16 @@
 
         <section data-page="prognosen" aria-labelledby="forecast-title" hidden>
           <div class="page-heading"><h1 id="forecast-title" tabindex="-1">Prognosen</h1></div>
+          <section class="panel forecast-panel" aria-labelledby="live-forecast-title">
+            <h2 id="live-forecast-title">Aktuelle ESPN-Prognosen</h2>
+            <p id="live-forecast-status" class="muted" role="status">Prognosen werden geladen …</p>
+            <ul id="live-player-forecasts" class="data-list table-list"></ul>
+          </section>
+          <section class="panel forecast-panel" aria-labelledby="ai-review-title">
+            <h2 id="ai-review-title">Drei-Rollen-KI-Test</h2>
+            <p id="ai-review-status" class="muted" role="status">Testergebnis wird geladen …</p>
+            <ul id="ai-review-results" class="data-list table-list"></ul>
+          </section>
           <section class="panel forecast-panel" aria-labelledby="weekly-inputs-title">
             <h2 id="weekly-inputs-title">Wochenstand vor Kickoff</h2>
             <p id="weekly-inputs-status" class="muted" role="status">Wochenstand wird geladen …</p>
@@ -111,7 +121,7 @@
     </main>
   </div>
 
-  <script src="app.js?v=weekly-inputs-2"></script>
+  <script src="app.js?v=live-forecasts-1"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

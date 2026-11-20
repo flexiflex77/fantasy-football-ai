@@ -35,6 +35,10 @@ const weeklyInputsStatus = document.getElementById("weekly-inputs-status");
 const weeklyInputsCoverage = document.getElementById("weekly-inputs-coverage");
 const weeklyPlayerForecasts = document.getElementById("weekly-player-forecasts");
 const weeklyPlayerForecastsTitle = document.getElementById("weekly-player-forecasts-title");
+const liveForecastStatus = document.getElementById("live-forecast-status");
+const livePlayerForecasts = document.getElementById("live-player-forecasts");
+const aiReviewStatus = document.getElementById("ai-review-status");
+const aiReviewResults = document.getElementById("ai-review-results");
 const dashboardWeek = document.getElementById("dashboard-week");
 const heroPlayer = document.getElementById("hero-player");
 const heroDetail = document.getElementById("hero-detail");
@@ -207,7 +211,43 @@ function showWeeklyInputs(snapshot, message = "Für dein Team liegt noch kein Wo
   weeklyPlayerForecastsTitle.hidden = forecasts.length === 0;
 }
 
+function showLiveForecasts(snapshot, message = "Für dein Team liegen keine aktuellen ESPN-Prognosen vor.") {
+  livePlayerForecasts.replaceChildren();
+  liveForecastStatus.textContent = message;
+  if (!snapshot?.projections_at) return;
+
+  const date = new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin",
+  });
+  liveForecastStatus.textContent =
+    `NFL-Woche ${snapshot.week} · Letzter Prognoseimport: ${date.format(new Date(snapshot.projections_at))} Uhr`;
+
+  for (const player of snapshot.player_forecasts) {
+    const kickoff = player.kickoff_at ? new Date(player.kickoff_at) : null;
+    const game = !kickoff ? "Kickoff nicht zugeordnet"
+      : kickoff.getTime() <= Date.now() ? "Kickoff vorbei · gesperrt" : `Kickoff ${date.format(kickoff)} Uhr`;
+    const detail = [player.roster_slot, player.injury_status, game].filter(Boolean).join(" · ");
+    const value = player.projected_points == null ? "Keine Prognose" : `${points.format(player.projected_points)} Pkt.`;
+    appendForecast(livePlayerForecasts, player.name, value, detail);
+  }
+}
+
+function showAiReview(review, message = "Für dein Team liegt noch kein Testergebnis vor.") {
+  aiReviewResults.replaceChildren();
+  aiReviewStatus.textContent = message;
+  if (!review) return;
+  aiReviewStatus.textContent = `Historischer Test mit dem Wochenstand vor Kickoff · NFL-Woche ${review.week}`;
+  for (const [title, result] of [["Aufstellung", review.lineup], ["Free Agents & Waiver", review.waiver]]) {
+    if (typeof result !== "string") continue;
+    const item = document.createElement("li");
+    item.append(createElement("strong", title), createElement("p", result, "row-detail"));
+    aiReviewResults.append(item);
+  }
+}
+
 async function loadWaivers(currentSession, signal) {
+  showAiReview(null, "Testergebnis wird geladen …");
+  showLiveForecasts(null, "Prognosen werden geladen …");
   showWeeklyInputs(null, "Wochenstand wird geladen …");
   setWaiverStatus("Spielerpool wird geladen …");
   waiverList.replaceChildren();
@@ -232,6 +272,8 @@ async function loadWaivers(currentSession, signal) {
     const data = await response.json();
     if (currentSession !== sessionVersion) return;
     showWeeklyInputs(data.weekly_inputs);
+    showLiveForecasts(data.current_forecasts);
+    showAiReview(data.ai_review);
     if (data.status === "unassigned") {
       setWaiverStatus("Für dieses Konto ist noch kein ESPN-Team zugeordnet.");
       return;
@@ -282,6 +324,8 @@ async function loadWaivers(currentSession, signal) {
     filters.hidden = true;
     setWaiverStatus("Spielerpool konnte nicht geladen werden.");
     showWeeklyInputs(null, "Wochenstand konnte nicht geladen werden.");
+    showLiveForecasts(null, "Prognosen konnten nicht geladen werden.");
+    showAiReview(null, "Testergebnis konnte nicht geladen werden.");
   }
 }
 
@@ -426,6 +470,8 @@ logoutButton.addEventListener("click", () => {
   lineupForecasts.replaceChildren();
   waiverForecasts.replaceChildren();
   setWaiverStatus("");
+  showAiReview(null, "Testergebnis wird geladen …");
+  showLiveForecasts(null, "Prognosen werden geladen …");
   showWeeklyInputs(null, "Wochenstand wird geladen …");
   showHero(null);
 
