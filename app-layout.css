@@ -125,3 +125,14 @@ main { padding-block: clamp(1.2rem, 5vw, 2.6rem) calc(6.75rem + env(safe-area-in
   .shortcuts { grid-template-columns: 1fr 1fr; }
   .bottom-nav { left: 50%; right: auto; bottom: .8rem; transform: translateX(-50%); width: min(35rem, 95%); border: 1px solid var(--border); border-radius: 1rem; }
 }
+
+.demo-link { display: flex; align-items: center; justify-content: center; margin-top: .65rem; }
+.demo-notice {
+  margin: 0 0 1rem;
+  padding: .6rem .8rem;
+  border: 1px solid var(--border);
+  border-radius: .65rem;
+  color: var(--mint);
+  font-size: .86rem;
+}
+#demo-exit { display: inline-flex; align-items: center; }

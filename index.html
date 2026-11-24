@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#151918">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="football-icon-192.png">
-  <link rel="stylesheet" href="app-layout.css">
+  <link rel="stylesheet" href="app-layout.css?v=demo-1">
   <title>Fantasy Football AI</title>
 </head>
 <body>
@@ -16,6 +16,7 @@
         <img src="football-icon-192.png" width="40" height="40" alt="">
         <span>Fantasy Football <strong>AI</strong><small>ESPN Fantasy · Saison 2026</small></span>
       </a>
+      <a id="demo-exit" class="quiet-button" href="./" hidden>Demo verlassen</a>
       <button id="logout-button" class="quiet-button" type="button" hidden>Abmelden</button>
     </header>
 
@@ -29,10 +30,12 @@
           <input id="password" type="password" autocomplete="current-password" required>
           <button class="primary-button" type="submit">Anmelden</button>
         </form>
+        <a class="quiet-button demo-link" href="./?demo=1">Demo öffnen</a>
         <p id="login-message" class="muted" role="status"></p>
       </section>
 
       <div id="dashboard" hidden>
+        <p id="demo-notice" class="demo-notice" hidden><strong>Vorführmodus</strong> · Beispieldaten</p>
         <section data-page="start" aria-labelledby="start-title">
           <div class="page-heading">
             <div>
@@ -121,7 +124,8 @@
     </main>
   </div>
 
-  <script src="app.js?v=live-forecasts-1"></script>
+  <script src="demo-data.js?v=1"></script>
+  <script src="app.js?v=demo-1"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

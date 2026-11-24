@@ -8,6 +8,7 @@ const SUPABASE_URL =
 const SUPABASE_KEY = "sb_publishable_pDEOZqKyCI4rRV6FLbq25Q_83wNcA23";
 
 // Elemente unserer App
+const isDemo = new URLSearchParams(location.search).get("demo") === "1";
 const loginForm = document.getElementById("login-form");
 const loginMessage = document.getElementById("login-message");
 const loginSection = document.getElementById("login");
@@ -93,7 +94,7 @@ function showHero(item) {
 
   heroPhoto.hidden = true;
   heroPhoto.removeAttribute("src");
-  if (item?.bankspieler === "Jahmyr Gibbs") {
+  if (!isDemo && item?.bankspieler === "Jahmyr Gibbs") {
     heroPhoto.src = "https://a.espncdn.com/i/headshots/nfl/players/full/4429795.png";
     heroPhoto.hidden = false;
   }
@@ -222,10 +223,11 @@ function showLiveForecasts(snapshot, message = "Für dein Team liegen keine aktu
   liveForecastStatus.textContent =
     `NFL-Woche ${snapshot.week} · Letzter Prognoseimport: ${date.format(new Date(snapshot.projections_at))} Uhr`;
 
+  const asOf = isDemo ? Date.parse(snapshot.projections_at) : Date.now();
   for (const player of snapshot.player_forecasts) {
     const kickoff = player.kickoff_at ? new Date(player.kickoff_at) : null;
     const game = !kickoff ? "Kickoff nicht zugeordnet"
-      : kickoff.getTime() <= Date.now() ? "Kickoff vorbei · gesperrt" : `Kickoff ${date.format(kickoff)} Uhr`;
+      : kickoff.getTime() <= asOf ? "Kickoff vorbei · gesperrt" : `Kickoff ${date.format(kickoff)} Uhr`;
     const detail = [player.roster_slot, player.injury_status, game].filter(Boolean).join(" · ");
     const value = player.projected_points == null ? "Keine Prognose" : `${points.format(player.projected_points)} Pkt.`;
     appendForecast(livePlayerForecasts, player.name, value, detail);
@@ -271,52 +273,7 @@ async function loadWaivers(currentSession, signal) {
 
     const data = await response.json();
     if (currentSession !== sessionVersion) return;
-    showWeeklyInputs(data.weekly_inputs);
-    showLiveForecasts(data.current_forecasts);
-    showAiReview(data.ai_review);
-    if (data.status === "unassigned") {
-      setWaiverStatus("Für dieses Konto ist noch kein ESPN-Team zugeordnet.");
-      return;
-    }
-    if (data.status === "no_snapshot") {
-      setWaiverStatus("Für dein Team liegt noch kein ESPN-Import vor.");
-      return;
-    }
-    if (data.status !== "ready") throw new Error("Unbekannter Waiver-Status");
-
-    const importedAt = new Intl.DateTimeFormat("de-DE", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(data.captured_at));
-
-    const summary = `${data.team_name} · ESPN-Woche ${data.week} · Import vom ${importedAt}`;
-    if (data.roster_player_count === 0) {
-      setWaiverStatus(`${summary}. Für diese Woche fehlen Kaderdaten.`);
-      return;
-    }
-
-    const count = data.candidates.length;
-    const detail = count === 0
-      ? "Keine passenden Kandidaten im importierten Spielerpool."
-      : `${count} von ${data.source_player_count} importierten Spielern passen zum Kadervergleich.`;
-    setWaiverStatus(`${summary}. ${detail}`, count === 0 ? `${summary}. ${detail}` : summary);
-
-    for (const candidate of data.candidates) {
-      const item = createElement("li", null, "panel");
-      const name = `${candidate.name} · ${candidate.position}`;
-      const top = createElement("div", null, "row-top");
-      const availability = candidate.fantasy_status === "WAIVERS" ? "Waiver-Claim nötig"
-        : candidate.fantasy_status === "FREEAGENT" ? "Sofort verfügbar" : "Verfügbarkeit unbekannt";
-      const badge = createElement("span", availability, "availability");
-      item.dataset.status = badge.dataset.status = candidate.fantasy_status ?? "unknown";
-      top.append(createElement("h3", name), badge);
-      const prediction = `${points.format(candidate.projected_points)} Pkt.`;
-      const comparison = `Kadervergleich ${points.format(candidate.lowest_roster_projection)} Pkt. · ${signedPoints.format(candidate.projection_delta)} Pkt.`;
-      item.append(top, createElement("p", `${prediction} prognostiziert · ${comparison}`, "row-detail"));
-      waiverList.append(item);
-      appendForecast(waiverForecasts, name, prediction, comparison);
-    }
-    filters.hidden = count === 0;
+    renderWaiverDashboard(data);
   } catch {
     if (currentSession !== sessionVersion) return;
     waiverList.replaceChildren();
@@ -327,6 +284,55 @@ async function loadWaivers(currentSession, signal) {
     showLiveForecasts(null, "Prognosen konnten nicht geladen werden.");
     showAiReview(null, "Testergebnis konnte nicht geladen werden.");
   }
+}
+
+function renderWaiverDashboard(data) {
+  showWeeklyInputs(data.weekly_inputs);
+  showLiveForecasts(data.current_forecasts);
+  showAiReview(data.ai_review);
+  if (data.status === "unassigned") {
+    setWaiverStatus("Für dieses Konto ist noch kein ESPN-Team zugeordnet.");
+    return;
+  }
+  if (data.status === "no_snapshot") {
+    setWaiverStatus("Für dein Team liegt noch kein ESPN-Import vor.");
+    return;
+  }
+  if (data.status !== "ready") throw new Error("Unbekannter Waiver-Status");
+
+  const importedAt = new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(data.captured_at));
+
+  const summary = `${data.team_name} · ESPN-Woche ${data.week} · Import vom ${importedAt}`;
+  if (data.roster_player_count === 0) {
+    setWaiverStatus(`${summary}. Für diese Woche fehlen Kaderdaten.`);
+    return;
+  }
+
+  const count = data.candidates.length;
+  const detail = count === 0
+    ? "Keine passenden Kandidaten im importierten Spielerpool."
+    : `${count} von ${data.source_player_count} importierten Spielern passen zum Kadervergleich.`;
+  setWaiverStatus(`${summary}. ${detail}`, count === 0 ? `${summary}. ${detail}` : summary);
+
+  for (const candidate of data.candidates) {
+    const item = createElement("li", null, "panel");
+    const name = `${candidate.name} · ${candidate.position}`;
+    const top = createElement("div", null, "row-top");
+    const availability = candidate.fantasy_status === "WAIVERS" ? "Waiver-Claim nötig"
+      : candidate.fantasy_status === "FREEAGENT" ? "Sofort verfügbar" : "Verfügbarkeit unbekannt";
+    const badge = createElement("span", availability, "availability");
+    item.dataset.status = badge.dataset.status = candidate.fantasy_status ?? "unknown";
+    top.append(createElement("h3", name), badge);
+    const prediction = `${points.format(candidate.projected_points)} Pkt.`;
+    const comparison = `Kadervergleich ${points.format(candidate.lowest_roster_projection)} Pkt. · ${signedPoints.format(candidate.projection_delta)} Pkt.`;
+    item.append(top, createElement("p", `${prediction} prognostiziert · ${comparison}`, "row-detail"));
+    waiverList.append(item);
+    appendForecast(waiverForecasts, name, prediction, comparison);
+  }
+  filters.hidden = count === 0;
 }
 
 // Anmeldung über Supabase Auth
@@ -480,5 +486,15 @@ logoutButton.addEventListener("click", () => {
 
   console.log("Fantasy Football AI: Abgemeldet");
 });
+
+if (isDemo && typeof fantasyDemoData !== "undefined") {
+  loginSection.hidden = true;
+  dashboard.hidden = false;
+  document.getElementById("demo-notice").hidden = false;
+  document.getElementById("demo-exit").hidden = false;
+  showRecommendations(fantasyDemoData.recommendations);
+  renderWaiverDashboard(fantasyDemoData.waivers);
+  showPage(true);
+}
 
 console.log("Fantasy Football AI gestartet");
