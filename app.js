@@ -234,11 +234,18 @@ function showLiveForecasts(snapshot, message = "Für dein Team liegen keine aktu
   }
 }
 
-function showAiReview(review, message = "Für dein Team liegt noch kein Testergebnis vor.") {
+function showAiReview(review, message = "Für dein Team liegen noch keine KI-Empfehlungen vor.") {
   aiReviewResults.replaceChildren();
   aiReviewStatus.textContent = message;
   if (!review) return;
-  aiReviewStatus.textContent = `Historischer Test mit dem Wochenstand vor Kickoff · NFL-Woche ${review.week}`;
+  if (review.kind === "scheduled") {
+    const time = new Intl.DateTimeFormat("de-DE", {
+      dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Berlin",
+    }).format(new Date(review.data_at ?? review.created_at));
+    aiReviewStatus.textContent = `NFL-Woche ${review.week} · Datenstand ${time} Uhr`;
+  } else {
+    aiReviewStatus.textContent = `Historischer Test vor Kickoff · NFL-Woche ${review.week}`;
+  }
   for (const [title, result] of [["Aufstellung", review.lineup], ["Free Agents & Waiver", review.waiver]]) {
     if (typeof result !== "string") continue;
     const item = document.createElement("li");
@@ -248,7 +255,7 @@ function showAiReview(review, message = "Für dein Team liegt noch kein Testerge
 }
 
 async function loadWaivers(currentSession, signal) {
-  showAiReview(null, "Testergebnis wird geladen …");
+  showAiReview(null, "KI-Empfehlungen werden geladen …");
   showLiveForecasts(null, "Prognosen werden geladen …");
   showWeeklyInputs(null, "Wochenstand wird geladen …");
   setWaiverStatus("Spielerpool wird geladen …");
@@ -282,7 +289,7 @@ async function loadWaivers(currentSession, signal) {
     setWaiverStatus("Spielerpool konnte nicht geladen werden.");
     showWeeklyInputs(null, "Wochenstand konnte nicht geladen werden.");
     showLiveForecasts(null, "Prognosen konnten nicht geladen werden.");
-    showAiReview(null, "Testergebnis konnte nicht geladen werden.");
+    showAiReview(null, "KI-Empfehlungen konnten nicht geladen werden.");
   }
 }
 
@@ -476,7 +483,7 @@ logoutButton.addEventListener("click", () => {
   lineupForecasts.replaceChildren();
   waiverForecasts.replaceChildren();
   setWaiverStatus("");
-  showAiReview(null, "Testergebnis wird geladen …");
+  showAiReview(null, "KI-Empfehlungen werden geladen …");
   showLiveForecasts(null, "Prognosen werden geladen …");
   showWeeklyInputs(null, "Wochenstand wird geladen …");
   showHero(null);
